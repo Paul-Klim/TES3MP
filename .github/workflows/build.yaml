@@ -1,0 +1,158 @@
+name: TES3MP Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  BUILD_TYPE: Release
+  OPENMW_VERSION: 0.47.0
+  RAKNET_VERSION: 3.25
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          git \
+          libopenal-dev \
+          libsdl2-dev \
+          libqt5opengl5-dev \
+          liblua5.1-0-dev \
+          libboost-all-dev \
+          libavcodec-dev \
+          libavformat-dev \
+          libavutil-dev \
+          libswscale-dev \
+          libswresample-dev \
+          libmygui-dev \
+          libbullet-dev \
+          libunshield-dev
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . \
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
+          -DBUILD_OPENMW_MP=ON \
+          -DBUILD_BROWSER=OFF
+
+    - name: Build
+      run: cmake --build build --config ${{env.BUILD_TYPE}} -j$(nproc)
+
+    - name: Create Package
+      run: |
+        mkdir -p package/TES3MP
+        cp build/tes3mp-* package/TES3MP/
+        cp -r resources/* package/TES3MP/
+        cp README.md package/TES3MP/
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: tes3mp-linux
+        path: package/TES3MP
+        retention-days: 30
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v1.1
+
+    - name: Install vcpkg
+      run: |
+        git clone https://github.com/Microsoft/vcpkg.git
+        .\vcpkg\bootstrap-vcpkg.bat
+        .\vcpkg\vcpkg integrate install
+
+    - name: Install Dependencies
+      run: |
+        .\vcpkg\vcpkg install --triplet x64-windows `
+          openal-soft `
+          sdl2 `
+          qt5-base `
+          lua `
+          boost-filesystem `
+          boost-program-options `
+          boost-system `
+          ffmpeg `
+          mygui `
+          bullet3 `
+          unshield
+
+    - name: Configure CMake
+      run: |
+        cmake -B build -S . `
+          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} `
+          -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake `
+          -DBUILD_OPENMW_MP=ON `
+          -DBUILD_BROWSER=OFF `
+          -A x64
+
+    - name: Build
+      run: cmake --build build --config ${{env.BUILD_TYPE}}
+
+    - name: Create Package
+      run: |
+        mkdir package\TES3MP
+        copy build\${{env.BUILD_TYPE}}\tes3mp*.exe package\TES3MP\
+        copy build\${{env.BUILD_TYPE}}\*.dll package\TES3MP\
+        xcopy /E /I resources package\TES3MP\resources
+        copy README.md package\TES3MP\
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: tes3mp-windows
+        path: package\TES3MP
+        retention-days: 30
+
+  create-release:
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+    - name: Download Linux Build
+      uses: actions/download-artifact@v3
+      with:
+        name: tes3mp-linux
+        path: tes3mp-linux
+
+    - name: Download Windows Build
+      uses: actions/download-artifact@v3
+      with:
+        name: tes3mp-windows
+        path: tes3mp-windows
+
+    - name: Create Archives
+      run: |
+        cd tes3mp-linux && zip -r ../TES3MP-linux.zip . && cd ..
+        cd tes3mp-windows && zip -r ../TES3MP-windows.zip . && cd ..
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          TES3MP-linux.zip
+          TES3MP-windows.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
