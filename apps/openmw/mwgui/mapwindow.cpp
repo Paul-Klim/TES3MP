@@ -377,25 +377,19 @@ namespace MWGui
 
         Send the LocalMapBase to our GUIController when updating player markers
     */
-    void LocalMapBase::updatePlayerMarkers()
-    {
-        mwmp::Main::get().getGUIController()->updatePlayersMarkers(this);
-    }
-    /*
-        End of tes3mp addition
-    */
+    // Удалите или закомментируйте этот блок
+/*
+void LocalMapBase::updatePlayerMarkers()
+{
+    mwmp::Main::get().getGUIController()->updatePlayersMarkers(this);
+}
 
-    /*
-        Start of tes3mp addition
-
-        Send the MapWindow to our GUIController when updating player markers
-    */
-    void MapWindow::updatePlayerMarkers()
-    {
-        LocalMapBase::updatePlayerMarkers();
-
-        mwmp::Main::get().getGUIController()->updateGlobalMapMarkerTooltips(this);
-    }
+void MapWindow::updatePlayerMarkers()
+{
+    LocalMapBase::updatePlayerMarkers();
+    mwmp::Main::get().getGUIController()->updateGlobalMapMarkerTooltips(this);
+}
+*/
     /*
         End of tes3mp addition
     */
