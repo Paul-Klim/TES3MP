@@ -150,7 +150,7 @@ namespace Debug
             return;
         }
 
-        CurrentDebugLevel = Verbose;
+        CurrentDebugLevel = Warning;
     }
 }
 
