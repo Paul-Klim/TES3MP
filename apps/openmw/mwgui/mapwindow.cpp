@@ -208,10 +208,7 @@ namespace MWGui
 
             Remove a MyGUI delegate for updating player markers
         */
-        mwmp::Main::get().getGUIController()->mPlayerMarkers.eventMarkersChanged -= MyGUI::newDelegate(this, &LocalMapBase::updatePlayerMarkers);
-        /*
-            End of tes3mp addition
-        */
+        // mwmp::Main::get().getGUIController()->mPlayerMarkers.eventMarkersChanged += MyGUI::newDelegate(this, &LocalMapBase::updatePlayerMarkers);
     }
 
     void LocalMapBase::init(MyGUI::ScrollView* widget, MyGUI::ImageBox* compass)
